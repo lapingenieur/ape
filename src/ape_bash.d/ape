@@ -1,0 +1,257 @@
+#!/bin/bash
+
+###### NOTES : ######
+#
+# Almost every ape -object- name start with "_in_" :
+#   almost every ape primary function name start with "_in_pri_"
+#   almost every ape secondary function name start with "_in_sec_"
+#
+#   almost every ape variable name start with "_in_var_"
+#   almost every ape's functions variable name start with "_in_var_s_"
+#
+# === Printed Colors ===
+#
+# Foreground colors (sorted by number) :
+#
+# 1;1	Red	bold	error (ape must exit)
+# 2	Green		information
+# 3;1	Yellow	bold	error (ape can continue)
+# 4	Blue		functions's standard output color
+# 5	Magenta		ape's standard output color
+# 6;1	Cyan	blod	important information
+# 7	White		other
+# 7;1	White	bold	colored information
+#
+# Foreground colors (sorted by signification) :
+#
+# 4	Blue		functions's standard output color
+# 5	Magenta		ape's standard output color
+# 2	Green		information
+# 6;1	Cyan	blod	important information
+# 7;1	White	bold	colored information
+# 3;1	Yellow	bold	error (ape can continue)
+# 1;1	Red	bold	error (ape must exit)
+# 7	White		other
+
+###### APE's VARIABLES : ######
+# 
+# .---------------------.-----------------------------------------------.
+# (     NAME            |     DESCRIPTION                               )
+# }---------------------+-----------------------------------------------{
+# ( _in_var_shell       | name of shells compatible with this script    )
+# }---------------------+-----------------------------------------------{
+# ( _in_var_vers        | actual version of ape                         )
+# }---------------------+-----------------------------------------------{
+# ( _in_var_vers_sh     | shell type of this script, types :            )
+# (                     | b = bash, z = zsh, f = fish, c = csh, k = ksh )
+# }---------------------+-----------------------------------------------{
+# ( _in_var_vers_build  | build number of this version                  )
+# '---------------------'-----------------------------------------------'
+
+_in_var_shell="bash"
+_in_var_vers=0.1.0
+_in_var_vers_sh="b"
+
+_in_var_vers_build=1
+
+	# quiet mode
+if test "$1" != "--quiet" && test "$1" != "-q"
+then
+	_in_var_quiet="0"
+else
+	_in_var_quiet="1"
+	shift
+fi
+
+	# PID
+if echo "$0" | grep -qiE "ape$" || echo "$0" | grep -qiE "ape_bash$"
+then
+	_in_var_pid="$PPID"
+else
+	if test "$ACTIVE_SHELL"
+	then
+		if echo "$ACTIVE_SHELL" | grep -i "GIT"
+		then
+			_in_var_pid="$$"
+		else
+			_in_var_s_done=0
+			until test $_in_var_s_done = 1
+			do
+				_in_var_s_done=1
+				echo -ne "\033[0;33;1mERR: APE : Did not find 'GIT' in \$ACTIVE_SHELL, continue like in GIT Shell ? (y/n) => "
+				read awnser
+				echo -ne "\033[0m"
+				case "$awnser" in
+					"y" | "yes" ) _in_var_pid="$$" ;;
+					"n" | "no" ) _in_var_pid="$PPID" ;;
+					* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
+				esac
+			done
+		fi
+	else
+		echo -e "\033[0;32mINFO: did not find 'ACTIVE_SHELL' variable, assuming running a GIT Shell\033[0m"
+	fi
+fi
+
+test $_in_var_quiet = 0 && echo -e "\033[0;35mPID to use : \033[32m'$_in_var_pid'\033[0m"
+
+###### PRIMARY FUNCTIONS : ######
+
+_in_pri_fun_nohelp(){
+	# arguments for _in_pri_fun_nohelp :
+	#   $1   :   /name of the function				ex : "/lsgit"
+	#   $2   :   name of the argument that does not have help	ex : "--color"
+	echo -e "\033[0;37;1mAPE$1 : no help message for '$2' argument... Try '$(echo $1 | sed "s/^\///g" | sed "s/$/ /g")--help'\033[0m"
+}
+
+_in_pri_lsgit(){
+	_in_var_s_color="auto"
+	_in_var_s_mode="0"
+	_in_var_s_dontgo=0
+	until test $# = 0
+	do
+		case "$1" in
+			"--color" | "-c" ) shift
+				if test $# = 0
+				then
+					echo -e "\033[0;33;1mERR: APE/lsgit --color : need an argument for '--color'\033[0m (use '--color --help')"
+				else
+					case "$1" in
+						"auto" ) _in_var_s_color="auto" ;;
+						"never" | "n" ) _in_var_s_color="never" ;;
+						"always" | "a" ) _in_var_s_color="always" ;;
+						"--help" | "-h" | "help" | "h" )
+							_in_var_s_dontgo=1
+							echo -ne "\033[0;34m"
+							cat << EOF
+APE/lsgit : --color argument help :
+
+NOTE: no effetct if found right PID with '--shell'
+desc  :  color mode
+use   :  lsgit --color MODE
+modes :
+  auto     automatic
+  always   always colored
+  never    never colored
+EOF
+							echo -e "\033[0m" ;;
+						* ) echo -e "\033[0;33;1mERR: APE/lsgit --color : unknown argument for --color option ('$1')\033[0m (use '--color --help')" ;;
+					esac
+				fi
+				;;
+			"--use-pid" | "--pid" | "-p" )
+				shift
+				if test $# = 0
+				then
+					echo -e "\033[0;33;1mERR: APE/lsgit --use-pid : need an argument for '--use-pid'\033[0m (must be a number/PID)"
+				else
+					if echo "$1" | grep -qE "^[0-9]+$"
+					then
+						_in_var_pid=$1
+						echo -e "\033[0;34mAPE/lsgit --use-pid : using '$1' PID\033[0m"
+					elif test "$1" = "--help" || test "$1" = "-h"
+					then
+						_in_var_s_dontgo=1
+						echo -en "\033[0;34m"
+						cat << EOF
+APE/lsgit : --use-pid argument help :
+
+NOTE: --use-pid has no effect without '--shell'
+desc  :  use another PID
+use   :  lsgit --use-pid PID
+arguments :
+  PID      PID to use
+EOF
+						echo -e "\033[0m"
+					else
+						echo -e "\033[0;31;1mCRI: APE/lsgit --use-pid : unknown argument for '--use-pid'\033[0m ('$1') (must be a number/PID)"
+						_in_var_s_dontgo=1
+					fi
+				fi
+				;;
+			"--help" | "-h" )
+				_in_var_s_dontgo=1
+				echo -ne "\033[0;34m"
+				cat <<EOF
+APE/lsgit : help :
+
+desc  :  list ~/.sh_git* files
+use   :  lsgit [OPTION]...
+options :
+  --color, -c      choose color mode for ls
+  --help, -h       print this help page
+  --version, -v    print the "about" page
+  --shell, -s      is there a file with \$PID extention
+  --all, -a        what is inside ~/.sh_git.all
+  --use-pid PID, --pid PID, -p PID
+  \`=>  use PID instead of general PID
+       NOTE: no effect without '--shell'
+EOF
+				echo -e "\033[0m" ;;
+			"--version" | "--vers" | "-v" )
+				_in_var_s_dontgo=1
+				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
+				cat <<EOF
+
+[builtin to APE]
+
+version : v1.0 (stable)
+made by : lapingenieur
+EOF
+				echo -e "\033[0m" ;;
+			"--shell" | "-s" )
+				if test "$2" = "--help" || test "$2" = "-h"
+				then
+					_in_pri_fun_nohelp /lsgit $1
+					shift
+				else
+					_in_var_s_mode="shell"
+				fi ;;
+			"--all" | "-a" )
+				if test "$2" = "--help" || test "$2" = "-h"
+				then
+					_in_pri_fun_nohelp /lsgit $1
+					shift
+				else
+					_in_var_s_mode="all"
+				fi ;;
+			* ) echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')" ;;
+		esac
+		shift
+	done
+
+	if test "$_in_var_s_dontgo" = 0
+	then
+		case "$_in_var_s_mode" in
+			"0" ) ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git" ;;
+			"shell" )
+				if ls -A ~/ | grep -q ".zsh_git.p.$_in_var_pid"
+				then
+					echo -e "\033[0;36;1m => \033[0;37;1mfound\033[0;36;1m a ~/.zsh_git.p file for \033[0;37m'$_in_var_pid'\033[0;36;1m PID :\033[0m"
+					ls -A ~/ | grep --color=never ".zsh_git" | sed "s/\.zsh_git\.p\.$_in_var_pid/\.zsh_git\.p\.$_in_var_pid       <===/g"
+				else
+					echo -e "\033[0;36;1m => \033[0;37;1mno\033[0;36;1m ~/.zsh_git.p file for \033[0;37m'$_in_var_pid'\033[0;36;1m PID :\033[0m"
+					ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git"
+				fi
+				;;
+			"all" )
+				if test -f ~/.zsh_git.all
+				then
+					if grep -q "go" ~/.zsh_git.all
+					then
+						echo -e "\033[0;36;1m => \033[32mdid find 'go'\033[36m in ~/.zshrc\033[0m"
+						echo -e "\033[0;36;1m\`=> Git Shell mode \033[37malways\033[36m activated\033[0m"
+					else
+						echo -e "\033[0;36;1m => \033[32mdid not find 'go'\033[36m in ~/.zshrc\033[0m"
+						echo -e "\033[0;36;1m\`=> Git Shell mode \033[37mnot always\033[36m activated\033[0m"
+					fi
+				else
+					echo -e "\033[0;33;1mERR: There is \033[37mno ~/.zsh_git.all\033[33m file\033[0m"
+				fi
+				;;
+			* ) echo "not implemented, or unknown mode : '$_in_var_s_mode'" ;;
+		esac
+	fi
+}
+
+_in_pri_lsgit $*
