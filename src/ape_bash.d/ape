@@ -62,7 +62,7 @@ _in_var_shell="bash"
 _in_var_vers=0.2.0
 _in_var_vers_sh="b"
 
-_in_var_vers_build=3
+_in_var_vers_build=4
 
 _in_var_quiet=1
 _in_var_quiet_all=""
@@ -281,7 +281,7 @@ _mkgit(){
 		case "$1" in
 			"--ls" | "-l" ) _in_var_m_list=1 ;;
 			"--force" | "-f" ) _in_var_m_force=1 ; echo -e "\033[0;32mINFO: \033[0;34mForcing unsecure action for \033[37mmkgit only\033[0m" ;;
-			"--use-pid" | "--pid" ) true ;; # no need of --use-pi, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
+			"--use-pid" | "--pid" ) true ;; # no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
 			"--verbose-ape" | "--verbose" | "--verbosing" | "-V" ) _in_var_m_verbose=1 ;;
 			"--like-git" | "--git-like" )
 				if test "$_in_var_m_force" = 1
@@ -310,6 +310,8 @@ _mkgit(){
 				echo -ne "\033[0;34m"
 				cat <<EOF
 APE/mkgit : help :
+
+NOTE: this mkgit can only create one file a time
 
 desc  :  make a ~/.sh_git.p.\$PID file
 use   :  mkgit [OPTION]... [PID]
@@ -378,6 +380,81 @@ EOF
 			else
 				echo -e "\033[0;31;1mERR: APE/mkgit : failed to touch ~/.zsh_git.p.$_in_var_m_pid\033[0m (exit status '$_in_var_m_exst')"
 			fi
+		fi
+	fi
+}
+
+_rmgit(){
+	_in_var_r_dontgo=0
+	_in_var_r_vers=1.0
+	while echo "$1" | grep -qE "^\-"
+	do
+		case "$1" in
+			"--use-pid" | "--pid" ) true ;; # no need of --use-pid, executes 'true' to do nothing
+			"-h" | "--help" )
+				_in_var_r_dontgo=1
+				echo -ne "\033[0;34m"
+				cat << EOF
+APE/rmgit : help :
+
+desc  :  remove ~/.sh_git.p* files
+use   :  lsgit [OPTION]... [PID]...
+options :
+  --help, -h       print this help page
+  --version, -v    print the "about" page
+PID argument :
+  PID number. Every specified PID's file
+  will be deleted
+
+NOTE: always give rm '-i' option
+EOF
+				echo -e "\033[0m" ;;
+			"--version" | "--vers" | "-v" )
+				_in_var_r_dontgo=1
+				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
+				cat <<EOF
+
+rmgit - remove ~/.sh_git.p* files
+[builtin to APE]
+
+version : $_in_var_r_vers (stable)
+made by : lapingenieur
+EOF
+				echo -e "\033[0m" ;;
+			* ) echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')" ;;
+		esac
+		shift
+	done
+
+	if test $_in_var_r_dontgo = 0
+	then
+		if test $# = 0
+		then
+			echo -e "\033[0;34mWill delete these files :\033[0m"
+			_lsgit --color n | grep ".zsh_git.p." --color=always
+			rm -i ~/.zsh_git.p.*
+		else
+			echo -e "\033[0;32m~/.zsh_git.p* file list :\033[0m"
+			_lsgit --color n | grep ".zsh_git.p." --color=always
+			until test $# = 0
+			do
+				if echo "$1" | grep -E "^[0-9]+$" >> /dev/null
+				then
+					if test -f ~/.zsh_git.p.$1
+					then
+						echo -e "\033[0;34mDeleting : ~/.zsh_git.p.$1\033[0m"
+						rm -i ~/.zsh_git.p.$1
+					else
+						echo -e "\033[0;1;33mERR: APE/rmgit : ~/.zsh_git.p.$1 does not exist... \033[0;32mskipping this PID\033[0m"
+					fi
+				elif echo "$1" | grep -qE "\-pid$"
+				then
+					true	# if a "--use-pid" or "--pid" option goes over the option decoding, it is made unoffensive here
+				else
+					echo -e "\033[0;1;33mERR: APE/rmgit : wrong argument : number/PID expected \033[0m(received '$1')"
+				fi
+				shift
+			done
 		fi
 	fi
 }
@@ -452,6 +529,7 @@ then
 	case "$1" in
 		"lsgit" ) shift ; _lsgit $* ;;
 		"mkgit" ) shift ; _mkgit $* ;;
+		"rmgit" ) shift ; _rmgit $* ;;
 		* )
 			if test $# != 0
 			then
