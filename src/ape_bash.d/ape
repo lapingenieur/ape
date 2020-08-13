@@ -2,14 +2,24 @@
 
 ###### NOTES : ######
 #
-# Almost every ape -object- name start with "_in_" :
-#   almost every ape primary function name start with "_in_pri_"
-#   almost every ape secondary function name start with "_in_sec_"
 #
 #   almost every ape variable name start with "_in_var_"
 #   almost every ape's functions variable name start with "_in_var_s_"
 #
+#
+# === Tags ===
+#
+#
+# Almost every ape primary function name starts with an underscore "_"
+# But sometimes it has another prefix. That's why There are tags :
+#   Tags are lines that start with "#:"
+#   There are different tags. Here is their exhaustive list :
+#     #:fun FUNNAME			Here is a function whose entire name is FUNNAME
+#     #:short SHORTNAME			Here is a function whose short name is SHORTNAME
+#
+#
 # === Printed Colors ===
+#
 #
 # Foreground colors (sorted by number) :
 #
@@ -49,19 +59,14 @@
 # '---------------------'-----------------------------------------------'
 
 _in_var_shell="bash"
-_in_var_vers=0.1.0
+_in_var_vers=0.2.0
 _in_var_vers_sh="b"
 
-_in_var_vers_build=1
+_in_var_vers_build=2
 
-	# quiet mode
-if test "$1" != "--quiet" && test "$1" != "-q"
-then
-	_in_var_quiet="0"
-else
-	_in_var_quiet="1"
-	shift
-fi
+_in_var_quiet=1
+_in_var_quiet_all=""
+_in_var_p_dontgo=0
 
 	# PID
 if echo "$0" | grep -qiE "ape$" || echo "$0" | grep -qiE "ape_bash$"
@@ -93,24 +98,27 @@ else
 	fi
 fi
 
-test $_in_var_quiet = 0 && echo -e "\033[0;35mPID to use : \033[32m'$_in_var_pid'\033[0m"
-
 ###### PRIMARY FUNCTIONS : ######
 
-_in_pri_fun_nohelp(){
+#:short fun_nohelp
+#:fun _fun_nohelp
+_fun_nohelp(){
 	# arguments for _in_pri_fun_nohelp :
 	#   $1   :   /name of the function				ex : "/lsgit"
 	#   $2   :   name of the argument that does not have help	ex : "--color"
 	echo -e "\033[0;37;1mAPE$1 : no help message for '$2' argument... Try '$(echo $1 | sed "s/^\///g" | sed "s/$/ /g")--help'\033[0m"
 }
 
-_in_pri_lsgit(){
+#:short lsgit
+#:fun _lsgit
+_lsgit(){
 	_in_var_s_color="auto"
 	_in_var_s_mode="0"
 	_in_var_s_dontgo=0
 	until test $# = 0
 	do
 		case "$1" in
+			"--verbose-ape" ) true ;; # ape-verbosing has no effect
 			"--color" | "-c" ) shift
 				if test $# = 0
 				then
@@ -249,9 +257,86 @@ EOF
 					echo -e "\033[0;33;1mERR: There is \033[37mno ~/.zsh_git.all\033[33m file\033[0m"
 				fi
 				;;
-			* ) echo "not implemented, or unknown mode : '$_in_var_s_mode'" ;;
+			* ) echo -e "\033[0;33;1mCRI: APE/lsgit [ INTERN ] : unknown mode ('$_in_var_s_mode')\033[0m" ;;
 		esac
 	fi
 }
 
-_in_pri_lsgit $*
+_mkgit(){
+	if echo "$ACTIVE_SHELL" | grep -i "GIT" >> /dev/null
+	then
+		if echo "$*" | grep "\-f" >> /dev/null || echo "$*" | grep "\-\-force" >> /dev/null
+		then
+			echo -e "\033[0;1;33malready in a git shell but received force option\033[0m"
+			echo -e "\033[0;36;1mPID : '$$'"
+			touch ~/.zsh_git.p.$$
+			echo -e "\033[0;32mtouched ~/.zsh_git.p.$$ :\033[0m"
+			_lsgit --quiet | sed "s/\.zsh_git\.p\.$PPID/\.zsh_git\.p\.$PPID       <===/g"
+		else
+			echo -e "\033[0;1;33mERR: already in a git shell ; add -f argument to force\033[0m"
+		fi
+	else
+		touch ~/.zsh_git.p.$PPID
+		echo -e "\033[0;32mtouched ~/.zsh_git.p.$PPID :\033[0m"
+		_lsgit --quiet | sed "s/\.zsh_git\.p\.$PPID/\.zsh_git\.p\.$PPID       <===/g"
+	fi
+}
+
+while echo "$1" | grep -qE "^\-"
+do
+	case "$1" in
+		"-V" | "--verbose" | "--verbosing" ) _in_var_quiet=0 ;;
+		"--verbose-hard" | "--hard-verbose" | "--verbosing-hard" | "--hard-verbosing" ) _in_var_quiet=0 ; _in_var_quiet_all="--verbose-ape" ;;
+		"-f" | "--force" ) _in_var_force=1 ;;
+
+		"-v" | "--vers" | "--version" )
+			_in_var_p_dontgo=1
+			echo -e "   \033[0;31;1mAPE\033[36m - The Escape Program for GIT-Shells\033[0m"
+			echo -e "\n\033[0;34;1mversion :   v$_in_var_vers-$_in_var_vers_sh\033[0m"
+			echo -e "\033[0;34;1mbuild   :   n° $_in_var_vers_build\033[0m"
+			echo -e "\033[0;34;1mtype    :   $_in_var_vers_sh\033[0m"
+			echo -e "\n\033[0;32mNOTE: This version only works for the '$_in_var_shell' shell(s)\033[0m"
+			echo -e "\033[0;32mNOTE: The build number is probably note up to date\033[0m"
+			;;
+		"-h" | "--help" ) true ;;
+	esac
+	shift
+done
+
+if test $_in_var_p_dontgo = 0
+then
+	test $_in_var_force = 1 && echo -e "\033[0;36;1mForcing unsecure action\033[0m"		# info : force opt
+
+	if test $_in_var_quiet = 0
+	then
+		if test "$_in_var_quiet_all"
+		then
+			echo -e "\033[0;36;1mHard Verbosing mode\033[0m"			# info : hard verbose opt
+		else
+			echo -e "\033[0;36;1mVerbosing mode\033[0m"				# info : verbose opt
+		fi										# NOTE: no verbose and hard verbose opt message at the same time
+
+		echo -e "\033[0;35mPID to use : \033[32m'$_in_var_pid'\033[0m"			# if verbose : info : PID
+	fi
+
+	case "$1" in
+		"lsgit" ) shift ; _lsgit $* ;;
+		"mkgit" ) shift ; #_mkgit $* ;;
+			echo "MKGIT : PART TODO" ;;
+		* )
+			if test $# != 0
+			then
+				if echo "$ACTIVE_SHELL" | grep -iq "GIT" >> /dev/null || test "$_in_var_force" = 1
+				then
+					PATH_GIT="$PATH"	# saving PATH
+					PATH="$PATH_RECOVERY"	# set real PATH
+					$*			# execute
+					PATH="$PATH_GIT"	# set git PAT
+				else
+					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Not running in Git mode, this command could dammage your current shell (only for this session)."
+					echo -e "\033[0;33;1m     Add -f argument to force\033[0m"
+				fi
+			fi
+			;;
+	esac
+fi
