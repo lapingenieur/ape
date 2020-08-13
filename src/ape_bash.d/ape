@@ -68,16 +68,18 @@ _in_var_quiet=1
 _in_var_quiet_all=""
 _in_var_p_dontgo=0
 
-	# PID
+	# PID and Shell type (GIT/not GIT)
 if echo "$0" | grep -qiE "ape$" || echo "$0" | grep -qiE "ape_bash$"
 then
 	_in_var_pid="$PPID"
+	_in_var_shtype="PPID"
 else
 	if test "$ACTIVE_SHELL"
 	then
 		if echo "$ACTIVE_SHELL" | grep -i "GIT"
 		then
 			_in_var_pid="$$"
+			_in_var_shtype="GIT"
 		else
 			_in_var_s_done=0
 			until test $_in_var_s_done = 1
@@ -87,8 +89,8 @@ else
 				read awnser
 				echo -ne "\033[0m"
 				case "$awnser" in
-					"y" | "yes" ) _in_var_pid="$$" ;;
-					"n" | "no" ) _in_var_pid="$PPID" ;;
+					"y" | "yes" ) _in_var_pid="$$" ; _in_var_shtype="GIT" ;;
+					"n" | "no" ) _in_var_pid="$PPID" ; _in_var_shtype="PPID" ;;
 					* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
 				esac
 			done
@@ -268,15 +270,43 @@ EOF
 #:short mkgit
 #:fun _mkgit
 _mkgit(){
+	_in_var_m_pid="$_in_var_pid"
 	_in_var_m_verbose=0
 	_in_var_m_dontgo=0
-	_in_var_m_vers=0.1
-	until $# = 0
+	_in_var_m_vers=1.0
+	_in_var_m_shtype="$_in_var_shtype"
+	_in_var_m_force="$_in_var_force"
+	until test $# = 0
 	do
 		case "$1" in
-			"--verbose-ape" ) _in_var_m_verbose ;;
+			"--ls" | "-l" ) _in_var_m_list=1 ;;
+			"--force" | "-f" ) _in_var_m_force=1 ; echo -e "\033[0;32mINFO: \033[0;34mForcing unsecure action for \033[37mmkgit only\033[0m" ;;
+			"--use-pid" | "--pid" ) true ;; # no need of --use-pi, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
+			"--verbose-ape" | "--verbose" | "--verbosing" | "-V" ) _in_var_m_verbose=1 ;;
+			"--like-git" | "--git-like" )
+				if test "$_in_var_m_force" = 1
+				then
+					_in_var_m_shtype="GIT"
+					echo -e "\033[0;34mUsing mkgit like for GIT Shells\033[0m"
+				else
+					_in_var_m_dontgo=1
+					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
+					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+				fi
+				;;
+			"--like-ppid" | "--ppid-like" )
+				if test "$_in_var_m_force" = 1
+				then
+					_in_var_m_shtype="PPID"
+					echo -e "\033[0;34mUsing mkgit like for PPID Shells\033[0m"
+				else
+					_in_var_m_dontgo=1
+					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
+					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+				fi
+				;;
 			"--help" | "-h" )
-				_in_var_s_dontgo=1
+				_in_var_m_dontgo=1
 				echo -ne "\033[0;34m"
 				cat <<EOF
 APE/mkgit : help :
@@ -286,45 +316,69 @@ use   :  mkgit [OPTION]... [PID]
 options :
   --help, -h       print this help page
   --version, -v    print the "about" page
+  --verbose, -V    verbosing mode
+  --force, -f      forcing opt. only for mkgit
+  --ls -l          use lsgit after touched
+  --like-git       change \$shtype to GIT
+  --like-ppid      change \$shtype to PPID
+NOTE: these 2 last options need ape force mode
 PID argument :
   use PID instead of general PID
+  NOTE: PID must be a number/PID
 EOF
 				echo -e "\033[0m" ;;
 			"--version" | "--vers" | "-v" )
-				_in_var_s_dontgo=1
+				_in_var_m_dontgo=1
 				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
 				cat <<EOF
 
 mkgit - make a ~/.sh_git.p.\$PID file
 [builtin to APE]
 
-version : $_in_var_s_vers (stable)
+version : $_in_var_m_vers (stable)
 made by : lapingenieur
 EOF
 				echo -e "\033[0m" ;;
-			* ) echo -e "\033[0;33;1mERR: APE/mkgit : unknown argument ('$1')\033[0m (use '--help')" ;;
+			* )
+				if echo "$1" | grep -qE "^[0-9]+$"
+				then
+					_in_var_m_pid="$1"
+				else
+					echo -e "\033[0;33;1mERR: APE/mkgit : unknown argument ('$1')\033[0m (use '--help')"
+				fi ;;
 		esac
 		shift
 	done
 
-
-
-	if echo "$ACTIVE_SHELL" | grep -i "GIT"
+	if test $_in_var_m_dontgo = 0
 	then
-		if echo "$*" | grep -q "\-f" || echo "$*" | grep -q "\-\-force"
+		if test "$_in_var_m_shtype" = "GIT" && test "$_in_var_pid" = "$_in_var_m_pid"
 		then
-			echo -e "\033[0;1;33malready in a git shell but received force option\033[0m"
-			echo -e "\033[0;36;1mPID : '$$'"
-			touch ~/.zsh_git.p.$$
-			echo -e "\033[0;32mtouched ~/.zsh_git.p.$$ :\033[0m"
-			_lsgit --quiet | sed "s/\.zsh_git\.p\.$PPID/\.zsh_git\.p\.$PPID       <===/g"
-		else
-			echo -e "\033[0;1;33mERR: already in a git shell ; add -f argument to force\033[0m"
+			_in_var_s_done=0
+			until test $_in_var_s_done = 1
+			do
+				echo -ne "\033[0;33;1mTouch a ~/.sh_git.p file for the current GIT Shell ? (y/n)\033[0m "
+				read awnser
+				echo -ne "\033[0m"
+				_in_var_s_done=1
+				case "$awnser" in
+					"y" | "yes" ) _in_var_m_dontgo=0 ;;
+					"n" | "no" ) _in_var_m_dontgo=1 ;;
+					* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
+				esac
+			done
 		fi
-	else
-		touch ~/.zsh_git.p.$PPID
-		echo -e "\033[0;32mtouched ~/.zsh_git.p.$PPID :\033[0m"
-		_lsgit --quiet | sed "s/\.zsh_git\.p\.$PPID/\.zsh_git\.p\.$PPID       <===/g"
+		if test $_in_var_m_dontgo = 0
+		then
+			touch ~/.zsh_git.p.$_in_var_m_pid
+			_in_var_m_exst=$?
+			if test $_in_var_m_exst = 0
+			then
+				echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$_in_var_m_pid\033[0m"
+			else
+				echo -e "\033[0;31;1mERR: APE/mkgit : failed to touch ~/.zsh_git.p.$_in_var_m_pid\033[0m (exit status '$_in_var_m_exst')"
+			fi
+		fi
 	fi
 }
 
@@ -353,7 +407,7 @@ do
 APE : --use-pid argument help :
 
 desc  :  use another PID
-use   :  lsgit --use-pid PID
+use   :  --use-pid PID
 arguments :
   PID      PID to use
 EOF
@@ -397,8 +451,7 @@ then
 
 	case "$1" in
 		"lsgit" ) shift ; _lsgit $* ;;
-		"mkgit" ) shift ; #_mkgit $* ;;
-			echo "MKGIT : PART TODO" ;;
+		"mkgit" ) shift ; _mkgit $* ;;
 		* )
 			if test $# != 0
 			then
@@ -409,8 +462,8 @@ then
 					$*			# execute
 					PATH="$PATH_GIT"	# set git PAT
 				else
-					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Not running in Git mode, this command could dammage your current shell (only for this session)."
-					echo -e "\033[0;33;1m     Add -f argument to force\033[0m"
+					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Not running in a Git shell, this command could dammage your current shell (only for this session)."
+					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
 				fi
 			fi
 			;;
