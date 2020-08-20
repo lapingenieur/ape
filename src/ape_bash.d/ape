@@ -118,12 +118,15 @@ _lsgit(){
 	_in_var_s_color="auto"
 	_in_var_s_mode="0"
 	_in_var_s_dontgo=0
-	_in_var_s_vers=1.0
+	_in_var_s_vers=1.1
+# lsgit [ape] vers. 1.1 log :
+#   added color for --shell even if found right PID
 	until test $# = 0
 	do
 		case "$1" in
 			"--verbose-ape" ) true ;; # ape-verbosing has no effect
-			"--color" | "-c" ) shift
+			"--verbose" ) echo -e "\033[0;32mverbosing mode has no effect\033[0m" ;;
+			"--color" | "-c" | "color" | "c" ) shift
 				if test $# = 0
 				then
 					echo -e "\033[0;33;1mERR: APE/lsgit --color : need an argument for '--color'\033[0m (use '--color --help')"
@@ -151,7 +154,7 @@ EOF
 					esac
 				fi
 				;;
-			"--use-pid" | "--pid" | "-p" )
+			"--use-pid" | "--pid" | "-p" | "use-pid" | "pid" | "p" )
 				shift
 				if test $# = 0
 				then
@@ -168,7 +171,6 @@ EOF
 						cat << EOF
 APE/lsgit : --use-pid argument help :
 
-NOTE: --use-pid has no effect without '--shell'
 desc  :  use another PID
 use   :  lsgit --use-pid PID
 arguments :
@@ -181,7 +183,7 @@ EOF
 					fi
 				fi
 				;;
-			"--help" | "-h" )
+			"--help" | "-h" | "help" | "h" )
 				_in_var_s_dontgo=1
 				echo -ne "\033[0;34m"
 				cat <<EOF
@@ -200,7 +202,7 @@ options :
        NOTE: no effect without '--shell'
 EOF
 				echo -e "\033[0m" ;;
-			"--version" | "--vers" | "-v" )
+			"--version" | "--vers" | "-v" | "version" | "vers" | "v" )
 				_in_var_s_dontgo=1
 				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
 				cat <<EOF
@@ -241,7 +243,7 @@ EOF
 				if ls -A ~/ | grep -q ".zsh_git.p.$_in_var_s_pid"
 				then
 					echo -e "\033[0;36;1m => \033[0;37;1mfound\033[0;36;1m a ~/.zsh_git.p file for \033[0;37m'$_in_var_s_pid'\033[0;36;1m PID :\033[0m"
-					ls -A ~/ | grep --color=never ".zsh_git" | sed "s/\.zsh_git\.p\.$_in_var_s_pid/\.zsh_git\.p\.$_in_var_s_pid       <===/g"
+					ls -A ~/ | grep --color=never ".zsh_git" | sed "s/\.zsh_git\.p\.$_in_var_s_pid/\.zsh_git\.p\.$_in_var_s_pid       <===/g" | grep --color=$_in_var_s_color ".zsh_git"
 				else
 					echo -e "\033[0;36;1m => \033[0;37;1mno\033[0;36;1m ~/.zsh_git.p file for \033[0;37m'$_in_var_s_pid'\033[0;36;1m PID :\033[0m"
 					ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git"
