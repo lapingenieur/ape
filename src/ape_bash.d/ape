@@ -80,19 +80,21 @@ then
 		_in_var_pid="$$"
 		_in_var_shtype="GIT"
 	else
-		_in_var_s_done=0
-		until test $_in_var_s_done = 1
-		do
-			_in_var_s_done=1
-			echo -ne "\033[0;33;1mERR: APE : Did not find 'GIT' in \$ACTIVE_SHELL, continue like in GIT Shell ? (y/n) => "
-			read awnser
-			echo -ne "\033[0m"
-			case "$awnser" in
-				"y" | "yes" ) _in_var_pid="$$" ; _in_var_shtype="GIT" ;;
-				"n" | "no" ) _in_var_pid="$PPID" ; _in_var_shtype="PPID" ;;
-				* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
-			esac
-		done
+		_in_var_pid="$PPID"
+		_in_var_shtype="PPID"
+#		_in_var_s_done=0
+#		until test $_in_var_s_done = 1
+#		do
+#			_in_var_s_done=1
+#			echo -ne "\033[0;33;1mERR: APE : Did not find 'GIT' in \$ACTIVE_SHELL, continue like in GIT Shell ? (y/n) => "
+#			read awnser
+#			echo -ne "\033[0m"
+#			case "$awnser" in
+#				"y" | "yes" ) _in_var_pid="$$" ; _in_var_shtype="GIT" ;;
+#				"n" | "no" ) _in_var_pid="$PPID" ; _in_var_shtype="PPID" ;;
+#				* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
+#			esac
+#		done
 	fi
 else
 	echo -e "\033[0;32mINFO: did not find 'ACTIVE_SHELL' variable, assuming running a GIT Shell\033[0m"
