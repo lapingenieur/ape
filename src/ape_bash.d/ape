@@ -275,36 +275,72 @@ _mkgit(){
 	_in_var_m_pid="$_in_var_pid"
 	_in_var_m_verbose=0
 	_in_var_m_dontgo=0
-	_in_var_m_vers=1.0
+	_in_var_m_vers=1.1
 	_in_var_m_shtype="$_in_var_shtype"
 	_in_var_m_force="$_in_var_force"
+# mkgit [ape] vers. 1.1 log :
+#   done no-help options for each argument
 	until test $# = 0
 	do
 		case "$1" in
-			"--ls" | "-l" ) _in_var_m_list=1 ;;
-			"--force" | "-f" ) _in_var_m_force=1 ; echo -e "\033[0;32mINFO: \033[0;34mForcing unsecure action for \033[37mmkgit only\033[0m" ;;
-			"--use-pid" | "--pid" ) true ;; # no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
-			"--verbose-ape" | "--verbose" | "--verbosing" | "-V" ) _in_var_m_verbose=1 ;;
-			"--like-git" | "--git-like" )
-				if test "$_in_var_m_force" = 1
+			"--ls" | "-l" )
+				if test "$2" = "--help" || test "$2" = "-h"
 				then
-					_in_var_m_shtype="GIT"
-					echo -e "\033[0;34mUsing mkgit like for GIT Shells\033[0m"
+					_in_pri_fun_nohelp /mkgit $1
+					shift
 				else
-					_in_var_m_dontgo=1
-					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
-					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+					 _in_var_m_list=1
+				fi ;;
+			"--force" | "-f" )
+				if test "$2" = "--help" || test "$2" = "-h"
+				then
+					_in_pri_fun_nohelp /mkgit $1
+					shift
+				else
+					 _in_var_m_force=1
+					 echo -e "\033[0;32mINFO: \033[0;34mForcing unsecure action for \033[37mmkgit only\033[0m"
+				fi ;;
+			"--use-pid" | "--pid" | "use-pid" | "pid" ) true ;; # no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
+			"--verbose-ape" | "--verbose" | "--verbosing" | "-V" )
+				if test "$2" = "--help" || test "$2" = "-h"
+				then
+					_in_pri_fun_nohelp /mkgit $1
+					shift
+				else
+					_in_var_m_verbose=1
+				fi ;;
+			"--like-git" | "--git-like" )
+				if test "$2" = "--help" || test "$2" = "-h"
+				then
+					_in_pri_fun_nohelp /mkgit $1
+					shift
+				else
+					if test "$_in_var_m_force" = 1
+					then
+						_in_var_m_shtype="GIT"
+						echo -e "\033[0;34mUsing mkgit like for GIT Shells\033[0m"
+					else
+						_in_var_m_dontgo=1
+						echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
+						echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+					fi
 				fi
 				;;
 			"--like-ppid" | "--ppid-like" )
-				if test "$_in_var_m_force" = 1
+				if test "$2" = "--help" || test "$2" = "-h"
 				then
-					_in_var_m_shtype="PPID"
-					echo -e "\033[0;34mUsing mkgit like for PPID Shells\033[0m"
+					_in_pri_fun_nohelp /mkgit $1
+					shift
 				else
-					_in_var_m_dontgo=1
-					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
-					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+					if test "$_in_var_m_force" = 1
+					then
+						_in_var_m_shtype="PPID"
+						echo -e "\033[0;34mUsing mkgit like for PPID Shells\033[0m"
+					else
+						_in_var_m_dontgo=1
+						echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
+						echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+					fi
 				fi
 				;;
 			"--help" | "-h" )
@@ -356,6 +392,11 @@ EOF
 
 	if test $_in_var_m_dontgo = 0
 	then
+#		if test "${_in_var_m_pid_multiple[0]}" = "0"
+#		then
+#			unset _in_var_m_pid_multiple
+#			_in_var_m_pid_multiple="$_in_var_m_pid"
+#		fi
 		if test "$_in_var_m_shtype" = "GIT" && test "$_in_var_pid" = "$_in_var_m_pid"
 		then
 			_in_var_s_done=0
@@ -386,12 +427,27 @@ EOF
 	fi
 }
 
+#:short rmgit
+#:fun _rmgit
 _rmgit(){
 	_in_var_r_dontgo=0
-	_in_var_r_vers=1.0
-	while echo "$1" | grep -qE "^\-"
+	_in_var_r_vers=2.0
+	_in_var_r_vers_stable="stable"
+	_in_var_r_file=0
+	_in_var_r_ls=0
+# rmgit [ape] vers. 2.0 log :
+#   redone the function
+	if echo "$*" | grep -qw "\-V" || echo "$*" | grep -qw "\-\-verbose"
+	then
+		echo -e "\033[0;34mCurrently present files :\033[0m"
+		_lsgit --color a
+	fi
+
+	until test $# = 0
 	do
 		case "$1" in
+			"-l" | "--ls" ) _in_var_r_ls=1 ;;
+			"-V" | "--verbose" ) true ;;
 			"--use-pid" | "--pid" ) true ;; # no need of --use-pid, executes 'true' to do nothing
 			"-h" | "--help" )
 				_in_var_r_dontgo=1
@@ -400,65 +456,61 @@ _rmgit(){
 APE/rmgit : help :
 
 desc  :  remove ~/.sh_git.p* files
-use   :  lsgit [OPTION]... [PID]...
+use   :  lsgit [OPTION | PID]...
 options :
+  --verbose, -V    verbose
   --help, -h       print this help page
   --version, -v    print the "about" page
+  --ls, -l         print files after actions
 PID argument :
   PID number. Every specified PID's file
   will be deleted
 
-NOTE: always give rm '-i' option
+NOTE: rmgit always gives rm '-i' option
 EOF
 				echo -e "\033[0m" ;;
 			"--version" | "--vers" | "-v" )
 				_in_var_r_dontgo=1
-				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
+				echo -e "\033[0;37;1mrmgit\033[34m - remove ~/.sh_git.p.* files"
 				cat <<EOF
-
-rmgit - remove ~/.sh_git.p* files
 [builtin to APE]
 
-version : $_in_var_r_vers (stable)
+version : $_in_var_r_vers ($_in_var_r_vers_stable)
 made by : lapingenieur
 EOF
 				echo -e "\033[0m" ;;
-			* ) echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')" ;;
+			* )
+				if echo "$1" | grep -qE "^[0-9]+$"
+				then
+					_in_var_r_file=$(($_in_var_r_file + 1))
+					if test -f ~/.zsh_git.p.$1
+					then
+						echo -ne "\033[0;34mDeleting ~/.zsh_git.p.$1 : \033[0m"
+						rm -i ~/.zsh_git.p.$1
+					else
+						echo -e "\033[0;1;33mERR: APE/rmgit : ~/.zsh_git.p.$1 does not exist... \033[0;34mskipping this PID\033[0m"
+					fi
+				else
+				 	echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')"
+				fi
+				;;
 		esac
 		shift
 	done
 
-	if test $_in_var_r_dontgo = 0
+	if test $_in_var_r_dontgo = 0 && test $_in_var_r_file = 0
 	then
-		if test $# = 0
+		if ls ~/.zsh_git.* > /dev/null 2>&1 && test $(ls -1 ~/.zsh_git.* | wc -l) != 1
 		then
 			echo -e "\033[0;34mWill delete these files :\033[0m"
 			_lsgit --color n | grep ".zsh_git.p." --color=always
 			rm -i ~/.zsh_git.p.*
 		else
-			echo -e "\033[0;32m~/.zsh_git.p* file list :\033[0m"
-			_lsgit --color n | grep ".zsh_git.p." --color=always
-			until test $# = 0
-			do
-				if echo "$1" | grep -E "^[0-9]+$" >> /dev/null
-				then
-					if test -f ~/.zsh_git.p.$1
-					then
-						echo -e "\033[0;34mDeleting : ~/.zsh_git.p.$1\033[0m"
-						rm -i ~/.zsh_git.p.$1
-					else
-						echo -e "\033[0;1;33mERR: APE/rmgit : ~/.zsh_git.p.$1 does not exist... \033[0;32mskipping this PID\033[0m"
-					fi
-				elif echo "$1" | grep -qE "\-pid$"
-				then
-					true	# if a "--use-pid" or "--pid" option goes over the option decoding, it is made unoffensive here
-				else
-					echo -e "\033[0;1;33mERR: APE/rmgit : wrong argument : number/PID expected \033[0m(received '$1')"
-				fi
-				shift
-			done
+			echo -e "\033[0;33mThere is no ~/.zsh_git.p.* file.\033[0m"
 		fi
 	fi
+
+	test $_in_var_r_ls = 1 && _lsgit
 }
 
 while echo "$1" | grep -qE "^\-"
