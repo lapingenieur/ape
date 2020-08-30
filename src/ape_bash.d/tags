@@ -1,0 +1,3 @@
+#:define lsgit _lsgit
+#:define mkgit _mkgit
+#:define rmgit _rmgit

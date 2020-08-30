@@ -70,37 +70,34 @@ _in_var_vers_sh="b"
 _in_var_quiet=1
 _in_var_quiet_all=""
 _in_var_p_dontgo=0
+_in_var_force=0
 
 	# PID and Shell type (GIT/not GIT)
-if echo "$0" | grep -qiE "ape$" || echo "$0" | grep -qiE "ape_bash$"
+if test "$ACTIVE_SHELL"
 then
-	_in_var_pid="$PPID"
-	_in_var_shtype="PPID"
-else
-	if test "$ACTIVE_SHELL"
+	if echo "$ACTIVE_SHELL" | grep -qi "GIT"
 	then
-		if echo "$ACTIVE_SHELL" | grep -i "GIT"
-		then
-			_in_var_pid="$$"
-			_in_var_shtype="GIT"
-		else
-			_in_var_s_done=0
-			until test $_in_var_s_done = 1
-			do
-				_in_var_s_done=1
-				echo -ne "\033[0;33;1mERR: APE : Did not find 'GIT' in \$ACTIVE_SHELL, continue like in GIT Shell ? (y/n) => "
-				read awnser
-				echo -ne "\033[0m"
-				case "$awnser" in
-					"y" | "yes" ) _in_var_pid="$$" ; _in_var_shtype="GIT" ;;
-					"n" | "no" ) _in_var_pid="$PPID" ; _in_var_shtype="PPID" ;;
-					* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
-				esac
-			done
-		fi
+		_in_var_pid="$$"
+		_in_var_shtype="GIT"
 	else
-		echo -e "\033[0;32mINFO: did not find 'ACTIVE_SHELL' variable, assuming running a GIT Shell\033[0m"
+		_in_var_s_done=0
+		until test $_in_var_s_done = 1
+		do
+			_in_var_s_done=1
+			echo -ne "\033[0;33;1mERR: APE : Did not find 'GIT' in \$ACTIVE_SHELL, continue like in GIT Shell ? (y/n) => "
+			read awnser
+			echo -ne "\033[0m"
+			case "$awnser" in
+				"y" | "yes" ) _in_var_pid="$$" ; _in_var_shtype="GIT" ;;
+				"n" | "no" ) _in_var_pid="$PPID" ; _in_var_shtype="PPID" ;;
+				* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
+			esac
+		done
 	fi
+else
+	echo -e "\033[0;32mINFO: did not find 'ACTIVE_SHELL' variable, assuming running a GIT Shell\033[0m"
+	_in_var_pid="$$"
+	_in_var_shtype="GIT"
 fi
 
 ###### PRIMARY FUNCTIONS : ######
@@ -114,315 +111,61 @@ _fun_nohelp(){
 	echo -e "\033[0;37;1mAPE$1 : no help message for '$2' argument... Try '$(echo $1 | sed "s/^\///g" | sed "s/$/ /g")--help'\033[0m"
 }
 
-#:short lsgit
-#:fun _lsgit
-_lsgit(){
-	_in_var_s_pid="$_in_var_pid"
-	_in_var_s_color="auto"
-	_in_var_s_mode="0"
-	_in_var_s_dontgo=0
-	_in_var_s_vers=1.2
-	_in_var_s_vers_stable="stable"
-	_in_var_s_verbose=0
-# lsgit [ape] vers. 1.2 (only minor changes)
-# lsgit [ape] vers. 1.1 log :
-#   added color for --shell even if found right PID
-	until test $# = 0
-	do
-		case "$1" in
-			"--verbose-ape" | "--verbose" | "-V" ) _in_var_s_verbose=1 ;;
-			"--shell" | "-s" ) _in_var_s_mode="shell" ;;
-			"--all" | "-a" ) _in_var_s_mode="all" ;;
-			"--color" | "-c" | "color" | "c" ) shift
-				if test $# = 0
+#:short go
+#:short to
+#:short so
+#:fun _gitsh_manage
+_gitsh_manage(){
+	_in_var_gs_vers="1.0"
+	_in_var_gs_vers_stable="stable"
+
+	case $1 in
+		"vers" ) echo -e "\033[0;37;1mGIT-SH MANAGE\033[34m - primary git shell managing\n[builtin to ape]\n\nversion : $_in_var_gs_vers ($_in_var_gs_vers_stable)\nmade by : lapingenieur\033[0m\n" ;;
+		"go" ) 
+			if echo "$_in_var_shtype" | grep -i "GIT" >> /dev/null || echo $* | grep -qw "\-\-force" || echo $* | grep -qw "\-f"
+			then
+				if test "$ACTIVE_SHTUS" = 0
 				then
-					echo -e "\033[0;33;1mERR: APE/lsgit --color : need an argument for '--color'\033[0m (use '--color --help')"
+					export ACTIVE_SHTUS=1
+					export PATH="$PATH_GIT"
+					echo "$PWD" | grep -E "/home/artg/Documents/myscripts/github(/|$)" >>/dev/null || cd ~/Documents/myscripts/github/
+					echo -e "\033[0;36;1mStarting git mode\033[0m"
 				else
-					case "$1" in
-						"auto" ) _in_var_s_color="auto" ;;
-						"never" | "n" ) _in_var_s_color="never" ;;
-						"always" | "a" ) _in_var_s_color="always" ;;
-						"--help" | "-h" | "help" | "h" )
-							_in_var_s_dontgo=1
-							echo -ne "\033[0;34m"
-							cat << EOF
-APE/lsgit : --color argument help :
-
-NOTE: no effetct if found right PID with '--shell'
-desc  :  color mode
-use   :  lsgit --color MODE
-modes :
-  auto     automatic
-  always   always colored
-  never    never colored
-EOF
-							echo -e "\033[0m" ;;
-						* ) echo -e "\033[0;33;1mERR: APE/lsgit --color : unknown argument for --color option ('$1')\033[0m (use '--color --help')" ;;
-					esac
+					echo -e "\033[0;33;1mERR: APE/go : GIT shell already started.\033[0m"
 				fi
-				;;
-			"--use-pid" | "--pid" | "-p" | "use-pid" | "pid" | "p" )
-				shift
-				if test $# = 0
+			else
+				echo "$_in_var_shtype"
+				echo -e "\033[0;31;47;1mCRI:\033[0;31;1m APE/go : Not running in Git mode, this command could dammage your current shell (only for this session)."
+				echo -e "\033[0;33;1m     Add -f argument to force\033[0m"
+			fi
+			;;
+		"so" )
+			if echo "$ACTIVE_SHELL" | grep -i "GIT" >> /dev/null || echo $* | grep -w "\-\-force" >> /dev/null || echo $* | grep -w "\-f" >> /dev/null
+			then
+				if test "$ACTIVE_SHTUS" != 0
 				then
-					echo -e "\033[0;33;1mERR: APE/lsgit --use-pid : need an argument for '--use-pid'\033[0m (must be a number/PID)"
+					export ACTIVE_SHTUS=0
+					export PATH="$PATH_RECOVERY"
+					echo -e "\033[0;36;1mStopping git mode\033[0m"
 				else
-					if echo "$1" | grep -qE "^[0-9]+$"
-					then
-						_in_var_s_pid=$1
-						echo -e "\033[0;34mAPE/lsgit --use-pid : using '$1' PID\033[0m"
-					elif test "$1" = "--help" || test "$1" = "-h"
-					then
-						_in_var_s_dontgo=1
-						echo -en "\033[0;34m"
-						cat << EOF
-APE/lsgit : --use-pid argument help :
-
-desc  :  use another PID
-use   :  lsgit --use-pid PID
-arguments :
-  PID      PID to use
-EOF
-						echo -e "\033[0m"
-					else
-						echo -e "\033[0;31;1mCRI: APE/lsgit --use-pid : unknown argument for '--use-pid'\033[0m ('$1') (must be a number/PID)"
-						_in_var_s_dontgo=1
-					fi
+					echo -e "\033[0;33;1mERR: APE/so : GIT shell already stopped.\033[0m"
 				fi
-				;;
-			"--help" | "-h" | "help" | "h" )
-				_in_var_s_dontgo=1
-				echo -ne "\033[0;34m"
-				cat <<EOF
-APE/lsgit : help :
-
-desc  :  list ~/.sh_git* files
-use   :  lsgit [OPTION]...
-options :
-  --color, -c      choose color mode for ls
-  --help, -h       print this help page
-  --version, -v    print the "about" page
-  --shell, -s      is there a file with \$PID extention
-  --all, -a        what is inside ~/.sh_git.all
-  --use-pid PID, --pid PID, -p PID
-  \`=>  use PID instead of general PID
-       NOTE: no effect without '--shell'
-EOF
-				echo -e "\033[0m" ;;
-			"--version" | "--vers" | "-v" | "version" | "vers" | "v" )
-				_in_var_s_dontgo=1
-				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
-				cat <<EOF
-
-lsgit - list ~/.sh_git* files
-[builtin to APE]
-
-version : $_in_var_s_vers ($_in_var_s_vers_stable)
-made by : lapingenieur
-EOF
-				echo -e "\033[0m" ;;
-			* ) echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')" ;;
-		esac
-		shift
-	done
-
-	if test "$_in_var_s_dontgo" = 0
-	then
-		test $_in_var_s_vers_stable = 1 && echo -e "\033[0;32mINFO: using PID '$_in_var_s_pid'"
-		case "$_in_var_s_mode" in
-			"0" ) ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git" ;;
-			"shell" )
-				if ls -A ~/ | grep -q ".zsh_git.p.$_in_var_s_pid"
-				then
-					echo -e "\033[0;36;1m => \033[0;37;1mfound\033[0;36;1m a ~/.zsh_git.p file for \033[0;37m'$_in_var_s_pid'\033[0;36;1m PID :\033[0m"
-					ls -A ~/ | grep --color=never ".zsh_git" | sed "s/\.zsh_git\.p\.$_in_var_s_pid/\.zsh_git\.p\.$_in_var_s_pid       <===/g" | grep --color=$_in_var_s_color ".zsh_git"
-				else
-					echo -e "\033[0;36;1m => \033[0;37;1mno\033[0;36;1m ~/.zsh_git.p file for \033[0;37m'$_in_var_s_pid'\033[0;36;1m PID :\033[0m"
-					ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git"
-				fi
-				;;
-			"all" )
-				if test -f ~/.zsh_git.all
-				then
-					if grep -q "go" ~/.zsh_git.all
-					then
-						echo -e "\033[0;36;1m => \033[32mdid find 'go'\033[36m in ~/.zshrc\033[0m"
-						echo -e "\033[0;36;1m\`=> Git Shell mode \033[37malways\033[36m activated\033[0m"
-					else
-						echo -e "\033[0;36;1m => \033[32mdid not find 'go'\033[36m in ~/.zshrc\033[0m"
-						echo -e "\033[0;36;1m\`=> Git Shell mode \033[37mnot always\033[36m activated\033[0m"
-					fi
-				else
-					echo -e "\033[0;33;1mERR: There is \033[37mno ~/.zsh_git.all\033[33m file\033[0m"
-				fi
-				;;
-			* ) echo -e "\033[0;33;1mCRI: APE/lsgit [ INTERN ] : unknown mode ('$_in_var_s_mode')\033[0m" ;;
-		esac
-	fi
+			else
+				echo -e "\033[0;31;47;1mCRI:\033[0;31;1m APE/so : Not running in Git mode, this command could dammage your current shell (only for this session)."
+				echo -e "\033[0;33;1m     Add -f argument to force\033[0m"
+			fi
+			;;
+		"to" ) 
+			case $ACTIVE_SHTUS in
+				"0" ) echo -e "\033[0;34;1m0\033[0;35;1m - Git shell status : \033[0;34;1munactive\033[0m" ;;
+				"1" ) echo -e "\033[0;32;1m1\033[0;35;1m - Git shell status : \033[0;32;1mactive\\033[0m" ;;
+				* ) echo -e "\033[0;31;1m?\033[0;35;1m - Git shell status : \033[0;31;1munknown ('$ACTIVE_SHTUS')\033[0;35;1m ; \033[0;33;1mreseting it to unactive\033[0m" ; _gitsh_manage so ;;
+			esac
+			;;
+	esac
 }
 
-#:short mkgit
-#:fun _mkgit
-_mkgit(){
-	_in_var_m_dontgo=0
-	_in_var_m_vers=2.0
-	_in_var_m_vers_stable="stable"
-	if echo "$*" | grep -qw "\-V" || echo "$*" | grep -qw "\-\-verbose" || echo "$*" | grep -qw "\-\-verbose-ape"
-	then
-		echo -e "\033[0;34mCurrently present files :\033[0m"
-		_lsgit --color a
-	fi
-# mkgit [ape] vers. 2.0 log :
-#   removed no-help options : bloaded up the script
-#   reorganized the hole function
-# mkgit [ape] vers. 1.1 log :
-#   done no-help options for each argument
-
-	until test $# = 0
-	do
-		case "$1" in
-			"--ls" | "-l" ) _in_var_m_list=1 ;;
-			"--verbose-ape" | "--verbose" | "-V" ) true ;;
-			"--use-pid" | "--pid" | "use-pid" | "pid" ) true ;;
-				# no need of --verbose, verbosing done above
-				# no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
-			"--help" | "-h" )
-				_in_var_m_dontgo=1
-				echo -ne "\033[0;34m"
-				cat <<EOF
-APE/mkgit : help :
-
-NOTE: this mkgit can only create one file a time
-
-desc  :  make a ~/.sh_git.p.\$PID file
-use   :  mkgit [OPTION | PID]...
-options :
-  --ls -l          use lsgit after touched
-  --help, -h       print this help page
-  --version, -v    print the "about" page
-  --verbose, -V    verbosing mode
-PID argument :
-  use PID instead of general PID
-  NOTE: PID must be a number/PID
-EOF
-				echo -e "\033[0m" ;;
-			"--version" | "--vers" | "-v" )
-				_in_var_m_dontgo=1
-				echo -e "\033[0;37;1mmkgit\033[34m - make a ~/.sh_git.p.\$PID file"
-				cat <<EOF
-[builtin to APE]
-
-version : $_in_var_m_vers ($_in_var_m_vers_stable)
-made by : lapingenieur
-EOF
-				echo -e "\033[0m" ;;
-			* )
-				if echo "$1" | grep -qE "^[0-9]+$"
-				then
-					_in_var_m_dontgo=1
-					touch ~/.zsh_git.p.$1
-					echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$1\033[0m"
-				else
-					echo -e "\033[0;33;1mERR: APE/mkgit : unknown argument ('$1')\033[0m (use '--help')"
-				fi ;;
-		esac
-		shift
-	done
-
-	if test $_in_var_m_dontgo = 0
-	then
-		touch ~/.zsh_git.p.$_in_var_pid
-		echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$_in_var_pid\033[0m"
-	fi
-
-	test "$_in_var_m_list" = 1 && _lsgit
-}
-
-#:short rmgit
-#:fun _rmgit
-_rmgit(){
-	_in_var_r_dontgo=0
-	_in_var_r_vers=2.0
-	_in_var_r_vers_stable="stable"
-	_in_var_r_file=0
-	_in_var_r_ls=0
-# rmgit [ape] vers. 2.0 log :
-#   redone the function
-	if echo "$*" | grep -qw "\-V" || echo "$*" | grep -qw "\-\-verbose"
-	then
-		echo -e "\033[0;34mCurrently present files :\033[0m"
-		_lsgit --color a
-	fi
-
-	until test $# = 0
-	do
-		case "$1" in
-			"-l" | "--ls" ) _in_var_r_ls=1 ;;
-			"-V" | "--verbose" ) true ;;
-			"--use-pid" | "--pid" ) true ;; # no need of --use-pid, executes 'true' to do nothing
-			"-h" | "--help" )
-				_in_var_r_dontgo=1
-				echo -ne "\033[0;34m"
-				cat << EOF
-APE/rmgit : help :
-
-desc  :  remove ~/.sh_git.p* files
-use   :  lsgit [OPTION | PID]...
-options :
-  --verbose, -V    verbose
-  --help, -h       print this help page
-  --version, -v    print the "about" page
-  --ls, -l         print files after actions
-PID argument :
-  PID number. Every specified PID's file
-  will be deleted
-
-NOTE: rmgit always gives rm '-i' option
-EOF
-				echo -e "\033[0m" ;;
-			"--version" | "--vers" | "-v" )
-				_in_var_r_dontgo=1
-				echo -e "\033[0;37;1mrmgit\033[34m - remove ~/.sh_git.p.* files"
-				cat <<EOF
-[builtin to APE]
-
-version : $_in_var_r_vers ($_in_var_r_vers_stable)
-made by : lapingenieur
-EOF
-				echo -e "\033[0m" ;;
-			* )
-				if echo "$1" | grep -qE "^[0-9]+$"
-				then
-					_in_var_r_file=$(($_in_var_r_file + 1))
-					if test -f ~/.zsh_git.p.$1
-					then
-						echo -ne "\033[0;34mDeleting ~/.zsh_git.p.$1 : \033[0m"
-						rm -i ~/.zsh_git.p.$1
-					else
-						echo -e "\033[0;1;33mERR: APE/rmgit : ~/.zsh_git.p.$1 does not exist... \033[0;34mskipping this PID\033[0m"
-					fi
-				else
-				 	echo -e "\033[0;33;1mERR: APE/rmgit : unknown argument ('$1')\033[0m (use '--help')"
-				fi
-				;;
-		esac
-		shift
-	done
-
-	if test $_in_var_r_dontgo = 0 && test $_in_var_r_file = 0
-	then
-		if ls ~/.zsh_git.* > /dev/null 2>&1 && test $(ls -1 ~/.zsh_git.* | wc -l) != 1
-		then
-			echo -e "\033[0;34mWill delete these files :\033[0m"
-			_lsgit --color n | grep ".zsh_git.p." --color=always
-			rm -i ~/.zsh_git.p.*
-		else
-			echo -e "\033[0;33mThere is no ~/.zsh_git.p.* file.\033[0m"
-		fi
-	fi
-
-	test $_in_var_r_ls = 1 && _lsgit
-}
+###### APE MAIN PART :  ######
 
 while echo "$1" | grep -qE "^\-"
 do
@@ -430,7 +173,23 @@ do
 		"-V" | "--verbose" | "--verbosing" ) _in_var_quiet=0 ;;
 		"--verbose-hard" | "--hard-verbose" | "--verbosing-hard" | "--hard-verbosing" ) _in_var_quiet=0 ; _in_var_quiet_all="--verbose-ape" ;;
 		"-f" | "--force" ) _in_var_force=1 ;;
-
+		"-fu" | "--unforce" ) _in_var_force=0 ;;
+		"--like-ppid" | "--ppid-like" ) if test "$_in_var_force" = 1
+			then
+				_in_var_pid="$PPID"
+				_in_var_shtype="PPID"
+			else
+				echo -e "Not using force mode"
+			fi
+			;;
+		"--like-git" | "--git-like" ) if test "$_in_var_force" = 1
+			then
+				_in_var_pid="$$"
+				_in_var_shtype="GIT"
+			else
+				echo -e "Not using force mode"
+			fi
+			;;
 		"--use-pid" | "--pid" )
 			shift
 			if test $# = 0
@@ -460,7 +219,16 @@ EOF
 				fi
 			fi
 			;;
-
+		"--vinfo" ) echo -ne "\033[0;36;1m"
+			cat << EOF 
+\$0      :  '$0'
+PID     :  '$_in_var_pid'
+SHTYPE  :  '$_in_var_shtype'
+version :  '$_in_var_vers$_in_var_vers_sh'
+EOF
+			echo -en "\033[0m"
+			;;
+		"-h" | "--help" ) echo "this help page is to be done" ;;
 		"-v" | "--vers" | "--version" )
 			_in_var_p_dontgo=1
 			echo -e "\033[0;37;1mAPE\033[35m - The Escape Program for GIT-Shells"
@@ -471,7 +239,6 @@ type    :   $_in_var_vers_sh
 EOF
 			echo -e "\n\033[0;32mNOTE: This version only works for the '$_in_var_shell' shell(s)\033[0m"
 			;;
-		"-h" | "--help" ) echo "this help page is to be done" ;;
 	esac
 	shift
 done
@@ -492,22 +259,32 @@ then
 		echo -e "\033[0;35mPID to use : \033[32m'$_in_var_pid'\033[0m"			# if verbose : info : PID
 	fi
 
+	. ~/.config/ape/include	###### HERE put your *sourcing* stuff in this file which is included in ape
+
 	case "$1" in
-		"lsgit" ) shift ; _lsgit $* ;;
-		"mkgit" ) shift ; _mkgit $* ;;
-		"rmgit" ) shift ; _rmgit $* ;;
+		"go" ) shift ; _gitsh_manage go $* ;;
+		"so" ) shift ; _gitsh_manage so $* ;;
+		"to" ) shift ; _gitsh_manage to $* ;;
 		* )
 			if test $# != 0
 			then
-				if echo "$ACTIVE_SHELL" | grep -iq "GIT" || test "$_in_var_force" = 1
+				if grep -qE "^#:define $1" ~/.config/ape/tags
 				then
-					PATH_GIT="$PATH"	# saving PATH
-					PATH="$PATH_RECOVERY"	# set real PATH
-					$*			# execute
-					PATH="$PATH_GIT"	# set git PAT
+					_in_var_p_com=$(grep -E "^#:define $1" ~/.config/ape/tags | sed "s/^#:define $1 *//g" | tail -n1)
+					shift
+					$_in_var_p_com $*
+					unset _in_var_p_com
 				else
-					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Not running in a Git shell, this command could dammage your current shell (only for this session)."
-					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+					if echo "$ACTIVE_SHELL" | grep -iq "GIT" || test "$_in_var_force" = 1
+					then
+						PATH_GIT="$PATH"	# saving PATH
+						PATH="$PATH_RECOVERY"	# set real PATH
+						$*			# execute
+						PATH="$PATH_GIT"	# set git PAT
+					else
+						echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Not running in a Git shell, this command could dammage your current shell (only for this session)."
+						echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
+					fi
 				fi
 			else
 				echo -e "\033[0;37;1mAPE\033[35m - The Escape Program for GIT-Shells\033[0m"

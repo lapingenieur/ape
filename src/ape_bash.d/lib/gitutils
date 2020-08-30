@@ -1,0 +1,313 @@
+#!/bin/bash
+#
+# gitutils - git shell managing extension for ape
+
+#:short lsgit
+#:fun _lsgit
+_lsgit(){
+	_in_var_s_pid="$_in_var_pid"
+	_in_var_s_color="auto"
+	_in_var_s_mode="0"
+	_in_var_s_dontgo=0
+	_in_var_s_vers=1.2
+	_in_var_s_vers_stable="stable"
+	_in_var_s_verbose=0
+# lsgit [ape] vers. 1.2 (only minor changes)
+# lsgit [ape] vers. 1.1 log :
+#   added color for --shell even if found right PID
+	until test $# = 0
+	do
+		case "$1" in
+			"--verbose-ape" | "--verbose" | "-V" ) _in_var_s_verbose=1 ;;
+			"--shell" | "-s" ) _in_var_s_mode="shell" ;;
+			"--all" | "-a" ) _in_var_s_mode="all" ;;
+			"--color" | "-c" | "color" | "c" ) shift
+				if test $# = 0
+				then
+					echo -e "\033[0;33;1mERR: APE/lsgit --color : need an argument for '--color'\033[0m (use '--color --help')"
+				else
+					case "$1" in
+						"auto" ) _in_var_s_color="auto" ;;
+						"never" | "n" ) _in_var_s_color="never" ;;
+						"always" | "a" ) _in_var_s_color="always" ;;
+						"--help" | "-h" | "help" | "h" )
+							_in_var_s_dontgo=1
+							echo -ne "\033[0;34m"
+							cat << EOF
+APE/lsgit : --color argument help :
+
+NOTE: no effetct if found right PID with '--shell'
+desc  :  color mode
+use   :  lsgit --color MODE
+modes :
+  auto     automatic
+  always   always colored
+  never    never colored
+EOF
+							echo -e "\033[0m" ;;
+						* ) echo -e "\033[0;33;1mERR: APE/lsgit --color : unknown argument for --color option ('$1')\033[0m (use '--color --help')" ;;
+					esac
+				fi
+				;;
+			"--use-pid" | "--pid" | "-p" | "use-pid" | "pid" | "p" )
+				shift
+				if test $# = 0
+				then
+					echo -e "\033[0;33;1mERR: APE/lsgit --use-pid : need an argument for '--use-pid'\033[0m (must be a number/PID)"
+				else
+					if echo "$1" | grep -qE "^[0-9]+$"
+					then
+						_in_var_s_pid=$1
+						echo -e "\033[0;34mAPE/lsgit --use-pid : using '$1' PID\033[0m"
+					elif test "$1" = "--help" || test "$1" = "-h"
+					then
+						_in_var_s_dontgo=1
+						echo -en "\033[0;34m"
+						cat << EOF
+APE/lsgit : --use-pid argument help :
+
+desc  :  use another PID
+use   :  lsgit --use-pid PID
+arguments :
+  PID      PID to use
+EOF
+						echo -e "\033[0m"
+					else
+						echo -e "\033[0;31;1mCRI: APE/lsgit --use-pid : unknown argument for '--use-pid'\033[0m ('$1') (must be a number/PID)"
+						_in_var_s_dontgo=1
+					fi
+				fi
+				;;
+			"--help" | "-h" | "help" | "h" )
+				_in_var_s_dontgo=1
+				echo -ne "\033[0;34m"
+				cat <<EOF
+APE/lsgit : help :
+
+desc  :  list ~/.sh_git* files
+use   :  lsgit [OPTION]...
+options :
+  --color, -c      choose color mode for ls
+  --help, -h       print this help page
+  --version, -v    print the "about" page
+  --shell, -s      is there a file with \$PID extention
+  --all, -a        what is inside ~/.sh_git.all
+  --use-pid PID, --pid PID, -p PID
+  \`=>  use PID instead of general PID
+       NOTE: no effect without '--shell'
+EOF
+				echo -e "\033[0m" ;;
+			"--version" | "--vers" | "-v" | "version" | "vers" | "v" )
+				_in_var_s_dontgo=1
+				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
+				cat <<EOF
+
+lsgit - list ~/.sh_git* files
+[builtin to APE]
+
+version : $_in_var_s_vers ($_in_var_s_vers_stable)
+made by : lapingenieur
+EOF
+				echo -e "\033[0m" ;;
+			* ) echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')" ;;
+		esac
+		shift
+	done
+
+	if test "$_in_var_s_dontgo" = 0
+	then
+		test $_in_var_s_vers_stable = 1 && echo -e "\033[0;32mINFO: using PID '$_in_var_s_pid'"
+		case "$_in_var_s_mode" in
+			"0" ) ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git" ;;
+			"shell" )
+				if ls -A ~/ | grep -q ".zsh_git.p.$_in_var_s_pid"
+				then
+					echo -e "\033[0;36;1m => \033[0;37;1mfound\033[0;36;1m a ~/.zsh_git.p file for \033[0;37m'$_in_var_s_pid'\033[0;36;1m PID :\033[0m"
+					ls -A ~/ | grep --color=never ".zsh_git" | sed "s/\.zsh_git\.p\.$_in_var_s_pid/\.zsh_git\.p\.$_in_var_s_pid       <===/g" | grep --color=$_in_var_s_color ".zsh_git"
+				else
+					echo -e "\033[0;36;1m => \033[0;37;1mno\033[0;36;1m ~/.zsh_git.p file for \033[0;37m'$_in_var_s_pid'\033[0;36;1m PID :\033[0m"
+					ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git"
+				fi
+				;;
+			"all" )
+				if test -f ~/.zsh_git.all
+				then
+					if grep -q "go" ~/.zsh_git.all
+					then
+						echo -e "\033[0;36;1m => \033[32mdid find 'go'\033[36m in ~/.zshrc\033[0m"
+						echo -e "\033[0;36;1m\`=> Git Shell mode \033[37malways\033[36m activated\033[0m"
+					else
+						echo -e "\033[0;36;1m => \033[32mdid not find 'go'\033[36m in ~/.zshrc\033[0m"
+						echo -e "\033[0;36;1m\`=> Git Shell mode \033[37mnot always\033[36m activated\033[0m"
+					fi
+				else
+					echo -e "\033[0;33;1mERR: There is \033[37mno ~/.zsh_git.all\033[33m file\033[0m"
+				fi
+				;;
+			* ) echo -e "\033[0;33;1mCRI: APE/lsgit [ INTERN ] : unknown mode ('$_in_var_s_mode')\033[0m" ;;
+		esac
+	fi
+}
+
+#:short mkgit
+#:fun _mkgit
+_mkgit(){
+	_in_var_m_dontgo=0
+	_in_var_m_vers=2.0
+	_in_var_m_vers_stable="stable"
+	if echo "$*" | grep -qw "\-V" || echo "$*" | grep -qw "\-\-verbose" || echo "$*" | grep -qw "\-\-verbose-ape"
+	then
+		echo -e "\033[0;34mCurrently present files :\033[0m"
+		_lsgit --color a
+	fi
+# mkgit [ape] vers. 2.0 log :
+#   removed no-help options : bloaded up the script
+#   reorganized the hole function
+# mkgit [ape] vers. 1.1 log :
+#   done no-help options for each argument
+
+	until test $# = 0
+	do
+		case "$1" in
+			"--ls" | "-l" ) _in_var_m_list=1 ;;
+			"--verbose-ape" | "--verbose" | "-V" ) true ;;
+			"--use-pid" | "--pid" | "use-pid" | "pid" ) true ;;
+				# no need of --verbose, verbosing done above
+				# no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
+			"--help" | "-h" )
+				_in_var_m_dontgo=1
+				echo -ne "\033[0;34m"
+				cat <<EOF
+APE/mkgit : help :
+
+NOTE: this mkgit can only create one file a time
+
+desc  :  make a ~/.sh_git.p.\$PID file
+use   :  mkgit [OPTION | PID]...
+options :
+  --ls -l          use lsgit after touched
+  --help, -h       print this help page
+  --version, -v    print the "about" page
+  --verbose, -V    verbosing mode
+PID argument :
+  use PID instead of general PID
+  NOTE: PID must be a number/PID
+EOF
+				echo -e "\033[0m" ;;
+			"--version" | "--vers" | "-v" )
+				_in_var_m_dontgo=1
+				echo -e "\033[0;37;1mmkgit\033[34m - make a ~/.sh_git.p.\$PID file"
+				cat <<EOF
+[builtin to APE]
+
+version : $_in_var_m_vers ($_in_var_m_vers_stable)
+made by : lapingenieur
+EOF
+				echo -e "\033[0m" ;;
+			* )
+				if echo "$1" | grep -qE "^[0-9]+$"
+				then
+					_in_var_m_dontgo=1
+					touch ~/.zsh_git.p.$1
+					echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$1\033[0m"
+				else
+					echo -e "\033[0;33;1mERR: APE/mkgit : unknown argument ('$1')\033[0m (use '--help')"
+				fi ;;
+		esac
+		shift
+	done
+
+	if test $_in_var_m_dontgo = 0
+	then
+		touch ~/.zsh_git.p.$_in_var_pid
+		echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$_in_var_pid\033[0m"
+	fi
+
+	test "$_in_var_m_list" = 1 && _lsgit
+}
+
+#:short rmgit
+#:fun _rmgit
+_rmgit(){
+       _in_var_r_dontgo=0
+       _in_var_r_vers=2.0
+       _in_var_r_vers_stable="stable"
+       _in_var_r_file=0
+       _in_var_r_ls=0
+# rmgit [ape] vers. 2.0 log :
+#   redone the function
+       if echo "$*" | grep -qw "\-V" || echo "$*" | grep -qw "\-\-verbose"
+       then
+               echo -e "\033[0;34mCurrently present files :\033[0m"
+               _lsgit --color a
+       fi
+
+       until test $# = 0
+       do
+               case "$1" in
+                       "-l" | "--ls" ) _in_var_r_ls=1 ;;
+                       "-V" | "--verbose" ) true ;;
+                       "--use-pid" | "--pid" ) true ;; # no need of --use-pid, executes 'true' to do nothing
+                       "-h" | "--help" )
+                               _in_var_r_dontgo=1
+                               echo -ne "\033[0;34m"
+                               cat << EOF
+APE/rmgit : help :
+
+desc  :  remove ~/.sh_git.p* files
+use   :  lsgit [OPTION | PID]...
+options :
+  --verbose, -V    verbose
+  --help, -h       print this help page
+  --version, -v    print the "about" page
+  --ls, -l         print files after actions
+PID argument :
+  PID number. Every specified PID's file
+  will be deleted
+
+NOTE: rmgit always gives rm '-i' option
+EOF
+                               echo -e "\033[0m" ;;
+                       "--version" | "--vers" | "-v" )
+                               _in_var_r_dontgo=1
+                               echo -e "\033[0;37;1mrmgit\033[34m - remove ~/.sh_git.p.* files"
+                               cat <<EOF
+[builtin to APE]
+
+version : $_in_var_r_vers ($_in_var_r_vers_stable)
+made by : lapingenieur
+EOF
+                               echo -e "\033[0m" ;;
+                       * )
+                               if echo "$1" | grep -qE "^[0-9]+$"
+                               then
+                                       _in_var_r_file=$(($_in_var_r_file + 1))
+                                       if test -f ~/.zsh_git.p.$1
+                                       then
+                                               echo -ne "\033[0;34mDeleting ~/.zsh_git.p.$1 : \033[0m"
+                                               rm -i ~/.zsh_git.p.$1
+                                       else
+                                               echo -e "\033[0;1;33mERR: APE/rmgit : ~/.zsh_git.p.$1 does not exist... \033[0;34mskipping this PID\033[0m"
+                                       fi
+                               else
+                                       echo -e "\033[0;33;1mERR: APE/rmgit : unknown argument ('$1')\033[0m (use '--help')"
+                               fi
+                               ;;
+               esac
+               shift
+       done
+
+       if test $_in_var_r_dontgo = 0 && test $_in_var_r_file = 0
+       then
+               if ls ~/.zsh_git.* > /dev/null 2>&1 && test $(ls -1 ~/.zsh_git.* | wc -l) != 1
+               then
+                       echo -e "\033[0;34mWill delete these files :\033[0m"
+                       _lsgit --color n | grep ".zsh_git.p." --color=always
+                       rm -i ~/.zsh_git.p.*
+               else
+                       echo -e "\033[0;33mThere is no ~/.zsh_git.p.* file.\033[0m"
+               fi
+       fi
+
+       test $_in_var_r_ls = 1 && _lsgit
+}
