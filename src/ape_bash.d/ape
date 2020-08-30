@@ -16,6 +16,11 @@
 #   There are different tags. Here is their exhaustive list :
 #     #:fun FUNNAME			Here is a function whose entire name is FUNNAME
 #     #:short SHORTNAME			Here is a function whose short name is SHORTNAME
+#     #:define SHORTNAME FUNNAME	Tells ape there's a function called FUNNAME whose short name is SHORTNAME
+#
+# The last tag is probably the most important for when you're hacking on ape (if you're because nobody's gonna use this script : it's so up bloaded...)
+# These tags are to be placed into ~/.config/ape/tags.ape . When you type in 'ape SHORTNAME' (SHORTNAME is a function you wrote and imported into ape),
+# ape searches for a '#:define SHORTNAME FUNNAME' tag to know which function you want to execute.
 #
 #
 # === Printed Colors ===
@@ -61,8 +66,6 @@
 _in_var_shell="bash"
 _in_var_vers=0.2.0
 _in_var_vers_sh="b"
-
-_in_var_vers_build=4
 
 _in_var_quiet=1
 _in_var_quiet_all=""
@@ -118,14 +121,18 @@ _lsgit(){
 	_in_var_s_color="auto"
 	_in_var_s_mode="0"
 	_in_var_s_dontgo=0
-	_in_var_s_vers=1.1
+	_in_var_s_vers=1.2
+	_in_var_s_vers_stable="stable"
+	_in_var_s_verbose=0
+# lsgit [ape] vers. 1.2 (only minor changes)
 # lsgit [ape] vers. 1.1 log :
 #   added color for --shell even if found right PID
 	until test $# = 0
 	do
 		case "$1" in
-			"--verbose-ape" ) true ;; # ape-verbosing has no effect
-			"--verbose" ) echo -e "\033[0;32mverbosing mode has no effect\033[0m" ;;
+			"--verbose-ape" | "--verbose" | "-V" ) _in_var_s_verbose=1 ;;
+			"--shell" | "-s" ) _in_var_s_mode="shell" ;;
+			"--all" | "-a" ) _in_var_s_mode="all" ;;
 			"--color" | "-c" | "color" | "c" ) shift
 				if test $# = 0
 				then
@@ -210,26 +217,10 @@ EOF
 lsgit - list ~/.sh_git* files
 [builtin to APE]
 
-version : $_in_var_s_vers (stable)
+version : $_in_var_s_vers ($_in_var_s_vers_stable)
 made by : lapingenieur
 EOF
 				echo -e "\033[0m" ;;
-			"--shell" | "-s" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /lsgit $1
-					shift
-				else
-					_in_var_s_mode="shell"
-				fi ;;
-			"--all" | "-a" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /lsgit $1
-					shift
-				else
-					_in_var_s_mode="all"
-				fi ;;
 			* ) echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')" ;;
 		esac
 		shift
@@ -237,6 +228,7 @@ EOF
 
 	if test "$_in_var_s_dontgo" = 0
 	then
+		test $_in_var_s_vers_stable = 1 && echo -e "\033[0;32mINFO: using PID '$_in_var_s_pid'"
 		case "$_in_var_s_mode" in
 			"0" ) ls -A ~/ | grep --color=$_in_var_s_color ".zsh_git" ;;
 			"shell" )
@@ -272,77 +264,28 @@ EOF
 #:short mkgit
 #:fun _mkgit
 _mkgit(){
-	_in_var_m_pid="$_in_var_pid"
-	_in_var_m_verbose=0
 	_in_var_m_dontgo=0
-	_in_var_m_vers=1.1
-	_in_var_m_shtype="$_in_var_shtype"
-	_in_var_m_force="$_in_var_force"
+	_in_var_m_vers=2.0
+	_in_var_m_vers_stable="stable"
+	if echo "$*" | grep -qw "\-V" || echo "$*" | grep -qw "\-\-verbose" || echo "$*" | grep -qw "\-\-verbose-ape"
+	then
+		echo -e "\033[0;34mCurrently present files :\033[0m"
+		_lsgit --color a
+	fi
+# mkgit [ape] vers. 2.0 log :
+#   removed no-help options : bloaded up the script
+#   reorganized the hole function
 # mkgit [ape] vers. 1.1 log :
 #   done no-help options for each argument
+
 	until test $# = 0
 	do
 		case "$1" in
-			"--ls" | "-l" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /mkgit $1
-					shift
-				else
-					 _in_var_m_list=1
-				fi ;;
-			"--force" | "-f" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /mkgit $1
-					shift
-				else
-					 _in_var_m_force=1
-					 echo -e "\033[0;32mINFO: \033[0;34mForcing unsecure action for \033[37mmkgit only\033[0m"
-				fi ;;
-			"--use-pid" | "--pid" | "use-pid" | "pid" ) true ;; # no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
-			"--verbose-ape" | "--verbose" | "--verbosing" | "-V" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /mkgit $1
-					shift
-				else
-					_in_var_m_verbose=1
-				fi ;;
-			"--like-git" | "--git-like" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /mkgit $1
-					shift
-				else
-					if test "$_in_var_m_force" = 1
-					then
-						_in_var_m_shtype="GIT"
-						echo -e "\033[0;34mUsing mkgit like for GIT Shells\033[0m"
-					else
-						_in_var_m_dontgo=1
-						echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
-						echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
-					fi
-				fi
-				;;
-			"--like-ppid" | "--ppid-like" )
-				if test "$2" = "--help" || test "$2" = "-h"
-				then
-					_in_pri_fun_nohelp /mkgit $1
-					shift
-				else
-					if test "$_in_var_m_force" = 1
-					then
-						_in_var_m_shtype="PPID"
-						echo -e "\033[0;34mUsing mkgit like for PPID Shells\033[0m"
-					else
-						_in_var_m_dontgo=1
-						echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Need force ape option to do this action. This command could dammage your current shell (only for this session).\033[0m"
-						echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
-					fi
-				fi
-				;;
+			"--ls" | "-l" ) _in_var_m_list=1 ;;
+			"--verbose-ape" | "--verbose" | "-V" ) true ;;
+			"--use-pid" | "--pid" | "use-pid" | "pid" ) true ;;
+				# no need of --verbose, verbosing done above
+				# no need of --use-pid, executes 'true' so that next time PID will be $1, and $1 as a number is a PID
 			"--help" | "-h" )
 				_in_var_m_dontgo=1
 				echo -ne "\033[0;34m"
@@ -352,16 +295,12 @@ APE/mkgit : help :
 NOTE: this mkgit can only create one file a time
 
 desc  :  make a ~/.sh_git.p.\$PID file
-use   :  mkgit [OPTION]... [PID]
+use   :  mkgit [OPTION | PID]...
 options :
+  --ls -l          use lsgit after touched
   --help, -h       print this help page
   --version, -v    print the "about" page
   --verbose, -V    verbosing mode
-  --force, -f      forcing opt. only for mkgit
-  --ls -l          use lsgit after touched
-  --like-git       change \$shtype to GIT
-  --like-ppid      change \$shtype to PPID
-NOTE: these 2 last options need ape force mode
 PID argument :
   use PID instead of general PID
   NOTE: PID must be a number/PID
@@ -369,20 +308,20 @@ EOF
 				echo -e "\033[0m" ;;
 			"--version" | "--vers" | "-v" )
 				_in_var_m_dontgo=1
-				echo -e "\033[0;37;1mlsgit\033[34m - list ~/.sh_git* files"
+				echo -e "\033[0;37;1mmkgit\033[34m - make a ~/.sh_git.p.\$PID file"
 				cat <<EOF
-
-mkgit - make a ~/.sh_git.p.\$PID file
 [builtin to APE]
 
-version : $_in_var_m_vers (stable)
+version : $_in_var_m_vers ($_in_var_m_vers_stable)
 made by : lapingenieur
 EOF
 				echo -e "\033[0m" ;;
 			* )
 				if echo "$1" | grep -qE "^[0-9]+$"
 				then
-					_in_var_m_pid="$1"
+					_in_var_m_dontgo=1
+					touch ~/.zsh_git.p.$1
+					echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$1\033[0m"
 				else
 					echo -e "\033[0;33;1mERR: APE/mkgit : unknown argument ('$1')\033[0m (use '--help')"
 				fi ;;
@@ -392,39 +331,11 @@ EOF
 
 	if test $_in_var_m_dontgo = 0
 	then
-#		if test "${_in_var_m_pid_multiple[0]}" = "0"
-#		then
-#			unset _in_var_m_pid_multiple
-#			_in_var_m_pid_multiple="$_in_var_m_pid"
-#		fi
-		if test "$_in_var_m_shtype" = "GIT" && test "$_in_var_pid" = "$_in_var_m_pid"
-		then
-			_in_var_s_done=0
-			until test $_in_var_s_done = 1
-			do
-				echo -ne "\033[0;33;1mTouch a ~/.sh_git.p file for the current GIT Shell ? (y/n)\033[0m "
-				read awnser
-				echo -ne "\033[0m"
-				_in_var_s_done=1
-				case "$awnser" in
-					"y" | "yes" ) _in_var_m_dontgo=0 ;;
-					"n" | "no" ) _in_var_m_dontgo=1 ;;
-					* ) echo -e "\033[0;36;1mAPE : unknown awnser '$awnser', please write 'yes' or 'no'\033[0m" ; _in_var_s_done=0 ;;
-				esac
-			done
-		fi
-		if test $_in_var_m_dontgo = 0
-		then
-			touch ~/.zsh_git.p.$_in_var_m_pid
-			_in_var_m_exst=$?
-			if test $_in_var_m_exst = 0
-			then
-				echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$_in_var_m_pid\033[0m"
-			else
-				echo -e "\033[0;31;1mERR: APE/mkgit : failed to touch ~/.zsh_git.p.$_in_var_m_pid\033[0m (exit status '$_in_var_m_exst')"
-			fi
-		fi
+		touch ~/.zsh_git.p.$_in_var_pid
+		echo -e "\033[0;36;1m => \033[37mTouched\033[36m ~/.zsh_git.p.$_in_var_pid\033[0m"
 	fi
+
+	test "$_in_var_m_list" = 1 && _lsgit
 }
 
 #:short rmgit
@@ -491,7 +402,7 @@ EOF
 						echo -e "\033[0;1;33mERR: APE/rmgit : ~/.zsh_git.p.$1 does not exist... \033[0;34mskipping this PID\033[0m"
 					fi
 				else
-				 	echo -e "\033[0;33;1mERR: APE/lsgit : unknown argument ('$1')\033[0m (use '--help')"
+				 	echo -e "\033[0;33;1mERR: APE/rmgit : unknown argument ('$1')\033[0m (use '--help')"
 				fi
 				;;
 		esac
@@ -552,12 +463,13 @@ EOF
 
 		"-v" | "--vers" | "--version" )
 			_in_var_p_dontgo=1
-			echo -e "   \033[0;31;1mAPE\033[36m - The Escape Program for GIT-Shells\033[0m"
-			echo -e "\n\033[0;34;1mversion :   v$_in_var_vers-$_in_var_vers_sh\033[0m"
-			echo -e "\033[0;34;1mbuild   :   n° $_in_var_vers_build\033[0m"
-			echo -e "\033[0;34;1mtype    :   $_in_var_vers_sh\033[0m"
+			echo -e "\033[0;37;1mAPE\033[35m - The Escape Program for GIT-Shells"
+			cat << EOF
+
+version :   v$_in_var_vers-$_in_var_vers_sh
+type    :   $_in_var_vers_sh
+EOF
 			echo -e "\n\033[0;32mNOTE: This version only works for the '$_in_var_shell' shell(s)\033[0m"
-			echo -e "\033[0;32mNOTE: The build number is probably note up to date\033[0m"
 			;;
 		"-h" | "--help" ) echo "this help page is to be done" ;;
 	esac
@@ -597,6 +509,8 @@ then
 					echo -e "\033[0;31;47;1mCRI:\033[0;31;1m Not running in a Git shell, this command could dammage your current shell (only for this session)."
 					echo -e "\033[0;33;1m     Add --force argument to ape (like 'ape --force [ARGUMENTS]')\033[0m"
 				fi
+			else
+				echo -e "\033[0;37;1mAPE\033[35m - The Escape Program for GIT-Shells\033[0m"
 			fi
 			;;
 	esac
